@@ -127,7 +127,18 @@ class PreferencesManager(
             prefs.remove(SP_USUARIO)
             prefs.remove(SP_PASSWORD)
             prefs.remove(SP_IDSERVICIO)
+            prefs.remove(SERVICIOS_JSON)
         }
+    }
+
+    suspend fun saveServicios(serviciosJson: String) {
+        context.dataStore.edit { prefs ->
+            prefs[SERVICIOS_JSON] = serviciosJson
+        }
+    }
+
+    suspend fun getServicios(): String? {
+        return context.dataStore.data.first()[SERVICIOS_JSON]
     }
 
     suspend fun isLoggedIn(): Boolean {

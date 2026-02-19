@@ -235,6 +235,7 @@ class SoapClient {
     private fun parseLoginResponse(xml: String): EqLoginResponse {
         return try {
             val factory = XmlPullParserFactory.newInstance()
+            factory.isNamespaceAware = true
             val parser = factory.newPullParser()
             parser.setInput(StringReader(xml))
             
@@ -242,13 +243,52 @@ class SoapClient {
             var descr: String? = null
             val servicios = mutableListOf<ServicioLoginItem>()
             
+            var inEqLogin = false
+            var currentIdServicio: Int? = null
+            var currentServicio: String? = null
+            
             var eventType = parser.eventType
             while (eventType != XmlPullParser.END_DOCUMENT) {
                 when (eventType) {
                     XmlPullParser.START_TAG -> {
                         when (parser.name) {
-                            "Error" -> error = parser.nextText().toIntOrNull() ?: -1
-                            "Descr" -> descr = parser.nextText()
+                            "Error" -> {
+                                val text = parser.nextText()
+                                error = text.toIntOrNull() ?: -1
+                            }
+                            "Descr" -> {
+                                descr = parser.nextText()
+                            }
+                            "Eq_Login" -> {
+                                inEqLogin = true
+                                currentIdServicio = null
+                                currentServicio = null
+                            }
+                            "IdServicio" -> {
+                                if (inEqLogin) {
+                                    currentIdServicio = parser.nextText().toIntOrNull()
+                                }
+                            }
+                            "Servicio" -> {
+                                if (inEqLogin) {
+                                    currentServicio = parser.nextText()
+                                }
+                            }
+                        }
+                    }
+                    XmlPullParser.END_TAG -> {
+                        if (parser.name == "Eq_Login" && inEqLogin) {
+                            if (currentIdServicio != null && currentServicio != null) {
+                                servicios.add(ServicioLoginItem(
+                                    idServicio = currentIdServicio!!,
+                                    servicio = currentServicio!!,
+                                    origen = null,
+                                    destino = null,
+                                    horaSalida = null,
+                                    horaLlegada = null
+                                ))
+                            }
+                            inEqLogin = false
                         }
                     }
                 }
@@ -258,7 +298,7 @@ class SoapClient {
             EqLoginResponse(error = error, descr = descr, servicios = servicios)
         } catch (e: Exception) {
             Log.e(TAG, "Error parseando XML", e)
-            EqLoginResponse(error = -1, descr = "Error parseando respuesta", servicios = null)
+            EqLoginResponse(error = -1, descr = "Error parseando respuesta: ${e.message}", servicios = null)
         }
     }
 }

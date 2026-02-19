@@ -16,9 +16,9 @@ class AuthRepositoryImpl @Inject constructor(
 ) : AuthRepository {
 
     companion object {
-        // Credenciales fijas del sistema según PDF
-        private const val SYSTEM_USER = "dUDl7aR"
-        private const val SYSTEM_PASSWORD = "dPu8rSH"  // Primeros 7 de dPu8rSHsA*
+        // Credenciales del sistema WebService Delta
+        private const val SYSTEM_USER = "cEl\$*eM"
+        private const val SYSTEM_PASSWORD = "eMbA*mArB#\$"
     }
 
     override suspend fun login(interno: String, password: String): Result<Usuario> {
@@ -27,8 +27,8 @@ class AuthRepositoryImpl @Inject constructor(
             val request = EqLoginRequest(
                 nroInterno = interno.padEnd(10, ' ').take(10),
                 passwordUsuario = password.padEnd(7, ' ').take(7),
-                usuario = SYSTEM_USER.padEnd(7, ' ').take(7),
-                password = SYSTEM_PASSWORD.padEnd(7, ' ').take(7)
+                usuario = SYSTEM_USER,
+                password = SYSTEM_PASSWORD
             )
             
             val result = soapClient.login(request)
@@ -43,7 +43,11 @@ class AuthRepositoryImpl @Inject constructor(
                         return Result.error("No hay servicios asignados para este interno")
                     }
                     
-                    // Tomamos el primer servicio como referencia (o podríamos guardar todos)
+                    // Guardar todos los servicios como JSON
+                    val serviciosJson = servicios.joinToString("|") { "${it.idServicio};${it.servicio};${it.origen ?: ""};${it.destino ?: ""}" }
+                    preferencesManager.saveServicios(serviciosJson)
+                    
+                    // Tomamos el primer servicio como referencia
                     val primerServicio = servicios.first()
                     
                     val usuario = Usuario(

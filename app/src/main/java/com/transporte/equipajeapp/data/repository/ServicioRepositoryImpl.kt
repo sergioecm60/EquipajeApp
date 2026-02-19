@@ -23,28 +23,39 @@ class ServicioRepositoryImpl @Inject constructor(
 
     override suspend fun getServiciosPorInterno(interno: String, fecha: String): Result<List<Servicio>> {
         return try {
-            Log.d(TAG, "Obteniendo servicio guardado para interno: $interno")
+            Log.d(TAG, "Obteniendo servicios guardados para interno: $interno")
             
-            val prefs = preferencesManager.getUser()
-            val servicio = prefs?.let {
-                Servicio(
-                    id = it.id,
-                    interno = it.interno,
-                    origen = "Consultar en boleto",
-                    destino = it.nombre,
-                    horaSalida = "",
-                    horaLlegada = "",
-                    empresa = it.empresa,
-                    fecha = fecha,
-                    estado = "activo"
-                )
+            val serviciosJson = preferencesManager.getServicios()
+            
+            if (serviciosJson.isNullOrEmpty()) {
+                Log.d(TAG, "No hay servicios guardados")
+                return Result.success(emptyList())
             }
             
-            if (servicio != null) {
-                Result.success(listOf(servicio))
-            } else {
-                Result.success(emptyList())
+            // Parsear servicios desde el formato: "id;servicio;origen;destino|id;servicio;origen;destino"
+            val servicios = serviciosJson.split("|").mapNotNull { item ->
+                val parts = item.split(";")
+                if (parts.size >= 2) {
+                    val id = parts[0].toIntOrNull()
+                    val nombre = parts[1]
+                    if (id != null) {
+                        Servicio(
+                            id = id,
+                            interno = interno,
+                            origen = parts.getOrNull(2)?.takeIf { it.isNotEmpty() } ?: "Consultar",
+                            destino = parts.getOrNull(3)?.takeIf { it.isNotEmpty() } ?: "Consultar",
+                            horaSalida = "",
+                            horaLlegada = "",
+                            empresa = "Delta",
+                            fecha = fecha,
+                            estado = "activo"
+                        )
+                    } else null
+                } else null
             }
+            
+            Log.d(TAG, "Servicios parseados: ${servicios.size}")
+            Result.success(servicios)
         } catch (e: Exception) {
             Log.e(TAG, "Error obteniendo servicios", e)
             Result.error(e.message ?: "Error inesperado")

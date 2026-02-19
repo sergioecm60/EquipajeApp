@@ -87,8 +87,8 @@ Carpeta con los APKs compilados de la aplicación para instalación directa en d
 
 ## 📞 Soporte
 
-**Desarrollador:** [Nombre del desarrollador]
-**Email:** [Email de soporte]
+**Desarrollador:** [Sergio Cabrera]
+**Email:** [sergiomiers@gmail.com]
 **WebService:** Delta Transporte
 
 ## 📝 Notas
