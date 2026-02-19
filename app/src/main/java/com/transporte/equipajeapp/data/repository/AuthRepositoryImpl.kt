@@ -69,10 +69,6 @@ class AuthRepositoryImpl @Inject constructor(
                         idServicio = usuario.id
                     )
                     
-                    // Guardar también la lista completa de servicios (si se puede)
-                    // Esto es para que el Dashboard pueda mostrar todos
-                    preferencesManager.saveServicios(servicios)
-                    
                     Result.success(usuario)
                 } else {
                     Result.error(response.descr ?: "Error en login (código ${response.error})")

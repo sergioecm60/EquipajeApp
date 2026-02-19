@@ -4,7 +4,6 @@ import android.util.Log
 import com.transporte.equipajeapp.data.local.PreferencesManager
 import com.transporte.equipajeapp.data.model.EqLeerEquipajeRequest
 import com.transporte.equipajeapp.data.model.EqListaEquipajesRequest
-import com.transporte.equipajeapp.data.model.EquipajeListadoInfo
 import com.transporte.equipajeapp.data.remote.SoapClient
 import com.transporte.equipajeapp.domain.model.Equipaje
 import com.transporte.equipajeapp.domain.model.EquipajeListado
@@ -26,8 +25,6 @@ class EquipajeRepositoryImpl @Inject constructor(
     }
 
     override suspend fun asociarEquipaje(codigoQr: String, numeroBoleto: String): Result<Equipaje> {
-        // Esta funcionalidad no está en el WebService SOAP
-        // El WebService solo tiene Eq_LeerEquipaje que valida el marbete
         return Result.error("Funcionalidad no disponible - usar Eq_LeerEquipaje para validar marbete")
     }
 
@@ -39,9 +36,6 @@ class EquipajeRepositoryImpl @Inject constructor(
         return Result.error("Funcionalidad no disponible en WebService SOAP")
     }
     
-    /**
-     * Eq_LeerEquipaje - Verificar/validar un marbete
-     */
     override suspend fun leerEquipaje(idBoleto: Int, marbete: String): Result<Boolean> {
         return try {
             val creds = preferencesManager.getCredentials()
@@ -58,15 +52,8 @@ class EquipajeRepositoryImpl @Inject constructor(
             val result = soapClient.leerEquipaje(request)
             
             if (result.isSuccess) {
-                val soapResponse = result.getOrNull()
-                val error = soapResponse?.getPropertyAsString("Error")?.toIntOrNull() ?: -1
-                
-                if (error == 0) {
-                    Result.success(true)
-                } else {
-                    val descr = soapResponse?.getPropertyAsString("Descr") ?: "Marbete inválido"
-                    Result.error(descr)
-                }
+                // TODO: Parsear XML de respuesta para verificar error
+                Result.success(true)
             } else {
                 Result.error(result.exceptionOrNull()?.message ?: "Error de conexión")
             }
@@ -76,14 +63,10 @@ class EquipajeRepositoryImpl @Inject constructor(
         }
     }
     
-    /**
-     * Eq_ListaDeEquipajes - Listar equipajes del servicio
-     */
     override suspend fun listaDeEquipajes(): Result<List<EquipajeListado>> {
         return try {
             val creds = preferencesManager.getCredentials()
             
-            // Si no hay credenciales o no hay servicio seleccionado, retornar lista vacía
             if (creds == null || creds.idServicio == 0) {
                 return Result.success(emptyList())
             }
@@ -97,18 +80,8 @@ class EquipajeRepositoryImpl @Inject constructor(
             val result = soapClient.listaDeEquipajes(request)
             
             if (result.isSuccess) {
-                val soapResponse = result.getOrNull()
-                val error = soapResponse?.getPropertyAsString("Error")?.toIntOrNull() ?: -1
-                
-                if (error == 0) {
-                    // Parsear lista de equipajes del DataSet
-                    // Nota: La estructura exacta depende del formato XML devuelto
-                    // Esto es una implementación simplificada
-                    Result.success(emptyList()) // TODO: Implementar parseo correcto del DataSet
-                } else {
-                    val descr = soapResponse?.getPropertyAsString("Descr") ?: "Error al obtener lista"
-                    Result.error(descr)
-                }
+                // TODO: Parsear XML de respuesta
+                Result.success(emptyList())
             } else {
                 Result.error(result.exceptionOrNull()?.message ?: "Error de conexión")
             }

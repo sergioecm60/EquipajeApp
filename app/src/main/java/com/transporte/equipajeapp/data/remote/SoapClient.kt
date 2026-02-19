@@ -6,15 +6,20 @@ import com.transporte.equipajeapp.data.model.EqLeerEquipajeRequest
 import com.transporte.equipajeapp.data.model.EqListaEquipajesRequest
 import com.transporte.equipajeapp.data.model.EqLoginRequest
 import com.transporte.equipajeapp.data.model.EqLoginResponse
+import com.transporte.equipajeapp.data.model.ServicioLoginItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.ksoap2.SoapEnvelope
-import org.ksoap2.serialization.SoapObject
-import org.ksoap2.serialization.SoapSerializationEnvelope
-import org.ksoap2.transport.HttpTransportSE
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.xmlpull.v1.XmlPullParser
+import org.xmlpull.v1.XmlPullParserFactory
+import java.io.StringReader
+import java.util.concurrent.TimeUnit
 
 /**
- * Cliente SOAP para comunicarse con el WebService de Delta
+ * Cliente SOAP usando OkHttp para comunicarse con el WebService de Delta
  * URL: http://servidordeltapy.dyndns.org/WSDelta_POS/wsdelta_pos.asmx
  */
 class SoapClient {
@@ -24,45 +29,62 @@ class SoapClient {
         private const val URL = "http://servidordeltapy.dyndns.org/WSDelta_POS/wsdelta_pos.asmx"
         private const val SOAP_ACTION_PREFIX = "Delta/"
         private const val TAG = "SoapClient"
+        private const val TIMEOUT = 30L
         
-        // Timeout en milisegundos
-        private const val TIMEOUT = 30000
+        private val XML_MEDIA_TYPE = "text/xml; charset=utf-8".toMediaType()
     }
+    
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(TIMEOUT, TimeUnit.SECONDS)
+        .readTimeout(TIMEOUT, TimeUnit.SECONDS)
+        .writeTimeout(TIMEOUT, TimeUnit.SECONDS)
+        .build()
     
     /**
      * Eq_Login - Autenticación del chofer
      */
     suspend fun login(request: EqLoginRequest): Result<EqLoginResponse> = withContext(Dispatchers.IO) {
         try {
-            val soapObject = SoapObject(NAMESPACE, "Eq_Login").apply {
-                addProperty("NroInterno", request.nroInterno)
-                addProperty("PasswordUsuario", request.passwordUsuario)
-                addProperty("Usuario", request.usuario)
-                addProperty("Password", request.password)
-            }
+            val soapBody = """
+                <?xml version="1.0" encoding="utf-8"?>
+                <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                               xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                  <soap:Body>
+                    <Eq_Login xmlns="Delta">
+                      <NroInterno>${request.nroInterno}</NroInterno>
+                      <PasswordUsuario>${request.passwordUsuario}</PasswordUsuario>
+                      <Usuario>${request.usuario}</Usuario>
+                      <Password>${request.password}</Password>
+                    </Eq_Login>
+                  </soap:Body>
+                </soap:Envelope>
+            """.trimIndent()
             
-            val envelope = createEnvelope(soapObject)
-            val transport = HttpTransportSE(URL, TIMEOUT).apply {
-                setXmlVersionTag("<?xml version=\"1.0\" encoding=\"utf-8\"?>")
-            }
+            val requestBody = soapBody.toRequestBody(XML_MEDIA_TYPE)
+            val httpRequest = Request.Builder()
+                .url(URL)
+                .post(requestBody)
+                .header("Content-Type", "text/xml; charset=utf-8")
+                .header("SOAPAction", "\"Delta/Eq_Login\"")
+                .build()
             
             Log.d(TAG, "Enviando Eq_Login con interno: ${request.nroInterno}")
             
-            transport.call("$SOAP_ACTION_PREFIX Eq_Login", envelope)
+            val response = client.newCall(httpRequest).execute()
+            val responseBody = response.body?.string()
             
-            val response = envelope.response
-            Log.d(TAG, "Respuesta Eq_Login: $response")
+            Log.d(TAG, "Respuesta Eq_Login: $responseBody")
             
-            // Parsear respuesta SOAP
-            if (response is SoapObject) {
-                val loginResponse = parseLoginResponse(response)
+            if (response.isSuccessful && responseBody != null) {
+                val loginResponse = parseLoginResponse(responseBody)
                 if (loginResponse.error == 0) {
                     Result.success(loginResponse)
                 } else {
-                    Result.failure(Exception(loginResponse.descr ?: "Error en login (código ${loginResponse.error})"))
+                    Result.failure(Exception(loginResponse.descr ?: "Error en login"))
                 }
             } else {
-                Result.failure(Exception("Respuesta inválida del servidor"))
+                Result.failure(Exception("Error HTTP: ${response.code}"))
             }
             
         } catch (e: Exception) {
@@ -74,28 +96,42 @@ class SoapClient {
     /**
      * Eq_LeerBoleto - Leer datos de un boleto
      */
-    suspend fun leerBoleto(request: EqLeerBoletoRequest): Result<SoapObject> = withContext(Dispatchers.IO) {
+    suspend fun leerBoleto(request: EqLeerBoletoRequest): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val soapObject = SoapObject(NAMESPACE, "Eq_LeerBoleto").apply {
-                addProperty("Empresa", request.empresa)
-                addProperty("Boleto", request.boleto.toString())
-                addProperty("IdServicio", request.idServicio)
-                addProperty("Usuario", request.usuario)
-                addProperty("Password", request.password)
-            }
+            val soapBody = """
+                <?xml version="1.0" encoding="utf-8"?>
+                <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                               xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                  <soap:Body>
+                    <Eq_LeerBoleto xmlns="Delta">
+                      <Empresa>${request.empresa}</Empresa>
+                      <Boleto>${request.boleto}</Boleto>
+                      <IdServicio>${request.idServicio}</IdServicio>
+                      <Usuario>${request.usuario}</Usuario>
+                      <Password>${request.password}</Password>
+                    </Eq_LeerBoleto>
+                  </soap:Body>
+                </soap:Envelope>
+            """.trimIndent()
             
-            val envelope = createEnvelope(soapObject)
-            val transport = HttpTransportSE(URL, TIMEOUT)
+            val requestBody = soapBody.toRequestBody(XML_MEDIA_TYPE)
+            val httpRequest = Request.Builder()
+                .url(URL)
+                .post(requestBody)
+                .header("Content-Type", "text/xml; charset=utf-8")
+                .header("SOAPAction", "\"Delta/Eq_LeerBoleto\"")
+                .build()
             
             Log.d(TAG, "Enviando Eq_LeerBoleto: ${request.boleto}")
             
-            transport.call("$SOAP_ACTION_PREFIX Eq_LeerBoleto", envelope)
+            val response = client.newCall(httpRequest).execute()
+            val responseBody = response.body?.string()
             
-            val response = envelope.response
-            if (response is SoapObject) {
-                Result.success(response)
+            if (response.isSuccessful && responseBody != null) {
+                Result.success(responseBody)
             } else {
-                Result.failure(Exception("Respuesta inválida"))
+                Result.failure(Exception("Error HTTP: ${response.code}"))
             }
             
         } catch (e: Exception) {
@@ -107,27 +143,42 @@ class SoapClient {
     /**
      * Eq_LeerEquipaje - Leer/validar equipaje por marbete
      */
-    suspend fun leerEquipaje(request: EqLeerEquipajeRequest): Result<SoapObject> = withContext(Dispatchers.IO) {
+    suspend fun leerEquipaje(request: EqLeerEquipajeRequest): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val soapObject = SoapObject(NAMESPACE, "Eq_LeerEquipaje").apply {
-                addProperty("IdBoleto", request.idBoleto)
-                addProperty("Marbete", request.marbete)
-                addProperty("Usuario", request.usuario)
-                addProperty("Password", request.password)
-            }
+            val soapBody = """
+                <?xml version="1.0" encoding="utf-8"?>
+                <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                               xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                  <soap:Body>
+                    <Eq_LeerEquipaje xmlns="Delta">
+                      <IdServicio>${request.idServicio}</IdServicio>
+                      <IdBoleto>${request.idBoleto}</IdBoleto>
+                      <Marbete>${request.marbete}</Marbete>
+                      <Usuario>${request.usuario}</Usuario>
+                      <Password>${request.password}</Password>
+                    </Eq_LeerEquipaje>
+                  </soap:Body>
+                </soap:Envelope>
+            """.trimIndent()
             
-            val envelope = createEnvelope(soapObject)
-            val transport = HttpTransportSE(URL, TIMEOUT)
+            val requestBody = soapBody.toRequestBody(XML_MEDIA_TYPE)
+            val httpRequest = Request.Builder()
+                .url(URL)
+                .post(requestBody)
+                .header("Content-Type", "text/xml; charset=utf-8")
+                .header("SOAPAction", "\"Delta/Eq_LeerEquipaje\"")
+                .build()
             
             Log.d(TAG, "Enviando Eq_LeerEquipaje: ${request.marbete}")
             
-            transport.call("$SOAP_ACTION_PREFIX Eq_LeerEquipaje", envelope)
+            val response = client.newCall(httpRequest).execute()
+            val responseBody = response.body?.string()
             
-            val response = envelope.response
-            if (response is SoapObject) {
-                Result.success(response)
+            if (response.isSuccessful && responseBody != null) {
+                Result.success(responseBody)
             } else {
-                Result.failure(Exception("Respuesta inválida"))
+                Result.failure(Exception("Error HTTP: ${response.code}"))
             }
             
         } catch (e: Exception) {
@@ -139,26 +190,40 @@ class SoapClient {
     /**
      * Eq_ListaDeEquipajes - Listar equipajes de un servicio
      */
-    suspend fun listaDeEquipajes(request: EqListaEquipajesRequest): Result<SoapObject> = withContext(Dispatchers.IO) {
+    suspend fun listaDeEquipajes(request: EqListaEquipajesRequest): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val soapObject = SoapObject(NAMESPACE, "Eq_ListaDeEquipajes").apply {
-                addProperty("IdServicio", request.idServicio)
-                addProperty("Usuario", request.usuario)
-                addProperty("Password", request.password)
-            }
+            val soapBody = """
+                <?xml version="1.0" encoding="utf-8"?>
+                <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                               xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                  <soap:Body>
+                    <Eq_ListaDeEquipajes xmlns="Delta">
+                      <IdServicio>${request.idServicio}</IdServicio>
+                      <Usuario>${request.usuario}</Usuario>
+                      <Password>${request.password}</Password>
+                    </Eq_ListaDeEquipajes>
+                  </soap:Body>
+                </soap:Envelope>
+            """.trimIndent()
             
-            val envelope = createEnvelope(soapObject)
-            val transport = HttpTransportSE(URL, TIMEOUT)
+            val requestBody = soapBody.toRequestBody(XML_MEDIA_TYPE)
+            val httpRequest = Request.Builder()
+                .url(URL)
+                .post(requestBody)
+                .header("Content-Type", "text/xml; charset=utf-8")
+                .header("SOAPAction", "\"Delta/Eq_ListaDeEquipajes\"")
+                .build()
             
             Log.d(TAG, "Enviando Eq_ListaDeEquipajes: ${request.idServicio}")
             
-            transport.call("$SOAP_ACTION_PREFIX Eq_ListaDeEquipajes", envelope)
+            val response = client.newCall(httpRequest).execute()
+            val responseBody = response.body?.string()
             
-            val response = envelope.response
-            if (response is SoapObject) {
-                Result.success(response)
+            if (response.isSuccessful && responseBody != null) {
+                Result.success(responseBody)
             } else {
-                Result.failure(Exception("Respuesta inválida"))
+                Result.failure(Exception("Error HTTP: ${response.code}"))
             }
             
         } catch (e: Exception) {
@@ -167,87 +232,33 @@ class SoapClient {
         }
     }
     
-    private fun createEnvelope(soapObject: SoapObject): SoapSerializationEnvelope {
-        return SoapSerializationEnvelope(SoapEnvelope.VER11).apply {
-            setOutputSoapObject(soapObject)
-            dotNet = true  // Importante para webservices .NET
-        }
-    }
-    
-    private fun parseLoginResponse(soapObject: SoapObject): EqLoginResponse {
-        val error = soapObject.getPropertySafelyAsString("Error")?.toIntOrNull() ?: -1
-        val descr = soapObject.getPropertySafelyAsString("Descr")
-        
-        // Si hay error, no hay servicios
-        if (error != 0) {
-            return EqLoginResponse(error = error, descr = descr, servicios = null)
-        }
-        
-        // Parsear lista de servicios
-        val servicios = mutableListOf<ServicioLoginItem>()
-        
-        try {
-            // El DataSet viene en la propiedad "Servicios" o similar
-            // Intentar obtener como SoapObject primero
-            val serviciosObj = soapObject.getProperty("Servicios") as? SoapObject
+    private fun parseLoginResponse(xml: String): EqLoginResponse {
+        return try {
+            val factory = XmlPullParserFactory.newInstance()
+            val parser = factory.newPullParser()
+            parser.setInput(StringReader(xml))
             
-            if (serviciosObj != null) {
-                // Iterar sobre los elementos
-                for (i in 0 until serviciosObj.propertyCount) {
-                    val servicioObj = serviciosObj.getProperty(i) as? SoapObject
-                    if (servicioObj != null) {
-                        val id = servicioObj.getPropertySafelyAsString("IdServicio")?.toIntOrNull() ?: 0
-                        val nombre = servicioObj.getPropertySafelyAsString("Servicio") ?: ""
-                        val origen = servicioObj.getPropertySafelyAsString("Origen")
-                        val destino = servicioObj.getPropertySafelyAsString("Destino")
-                        val horaSalida = servicioObj.getPropertySafelyAsString("HoraSalida")
-                        val horaLlegada = servicioObj.getPropertySafelyAsString("HoraLlegada")
-                        
-                        servicios.add(ServicioLoginItem(
-                            idServicio = id,
-                            servicio = nombre,
-                            origen = origen,
-                            destino = destino,
-                            horaSalida = horaSalida,
-                            horaLlegada = horaLlegada
-                        ))
+            var error = -1
+            var descr: String? = null
+            val servicios = mutableListOf<ServicioLoginItem>()
+            
+            var eventType = parser.eventType
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                when (eventType) {
+                    XmlPullParser.START_TAG -> {
+                        when (parser.name) {
+                            "Error" -> error = parser.nextText().toIntOrNull() ?: -1
+                            "Descr" -> descr = parser.nextText()
+                        }
                     }
                 }
+                eventType = parser.next()
             }
             
-            // Si no se encontraron servicios en lista, intentar leer uno solo (formato antiguo)
-            if (servicios.isEmpty()) {
-                val id = soapObject.getPropertySafelyAsString("IdServicio")?.toIntOrNull() ?: 0
-                val nombre = soapObject.getPropertySafelyAsString("Servicio") ?: ""
-                if (id > 0) {
-                    servicios.add(ServicioLoginItem(
-                        idServicio = id,
-                        servicio = nombre,
-                        origen = null,
-                        destino = null,
-                        horaSalida = null,
-                        horaLlegada = null
-                    ))
-                }
-            }
+            EqLoginResponse(error = error, descr = descr, servicios = servicios)
         } catch (e: Exception) {
-            Log.e(TAG, "Error parseando servicios", e)
+            Log.e(TAG, "Error parseando XML", e)
+            EqLoginResponse(error = -1, descr = "Error parseando respuesta", servicios = null)
         }
-        
-        return EqLoginResponse(
-            error = error,
-            descr = descr,
-            servicios = servicios
-        )
-    }
-}
-
-// Extensión para obtener propiedades de forma segura
-private fun SoapObject.getPropertySafelyAsString(name: String): String? {
-    return try {
-        val property = getProperty(name)
-        property?.toString()?.takeIf { it != "anyType{}" }
-    } catch (e: Exception) {
-        null
     }
 }

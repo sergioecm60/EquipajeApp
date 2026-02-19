@@ -108,8 +108,8 @@ dependencies {
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
-    // SOAP para WebService
-    implementation("com.google.code.ksoap2-android:ksoap2-android:3.6.4")
+    // XML Parsing for SOAP responses
+    implementation("org.simpleframework:simple-xml:2.7.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

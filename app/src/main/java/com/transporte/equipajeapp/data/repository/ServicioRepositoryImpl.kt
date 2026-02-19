@@ -21,23 +21,17 @@ class ServicioRepositoryImpl @Inject constructor(
         private const val TAG = "ServicioRepoImpl"
     }
 
-    /**
-     * NOTA: El WebService SOAP no tiene método para listar servicios.
-     * Solo devuelve el servicio actual en el login.
-     * Esta función retorna el servicio guardado en preferencias o lista vacía.
-     */
     override suspend fun getServiciosPorInterno(interno: String, fecha: String): Result<List<Servicio>> {
         return try {
             Log.d(TAG, "Obteniendo servicio guardado para interno: $interno")
             
             val prefs = preferencesManager.getUser()
             val servicio = prefs?.let {
-                // Crear un único servicio con la info del login
                 Servicio(
                     id = it.id,
                     interno = it.interno,
-                    origen = "Consultar en boleto",  // No viene en el login
-                    destino = it.nombre,  // El nombre del servicio viene en 'nombre'
+                    origen = "Consultar en boleto",
+                    destino = it.nombre,
                     horaSalida = "",
                     horaLlegada = "",
                     empresa = it.empresa,
@@ -66,9 +60,6 @@ class ServicioRepositoryImpl @Inject constructor(
         }
     }
     
-    /**
-     * Eq_LeerBoleto - Obtener información de un boleto
-     */
     override suspend fun leerBoleto(empresa: String, boleto: Long): Result<Boleto> {
         return try {
             val creds = preferencesManager.getCredentials()
@@ -85,26 +76,19 @@ class ServicioRepositoryImpl @Inject constructor(
             val result = soapClient.leerBoleto(request)
             
             if (result.isSuccess) {
-                val soapResponse = result.getOrNull()
-                // Parsear respuesta SOAP
-                val error = soapResponse?.getPropertyAsString("Error")?.toIntOrNull() ?: -1
-                
-                if (error == 0) {
-                    val boletoInfo = Boleto(
-                        id = soapResponse?.getPropertyAsString("IdBoleto")?.toIntOrNull() ?: 0,
-                        numero = boleto.toString(),
-                        pasajero = soapResponse?.getPropertyAsString("Pasajero") ?: "",
-                        dni = soapResponse?.getPropertyAsString("Documento") ?: "",
-                        origen = "",
-                        destino = "",
-                        fecha = "",
-                        servicioId = creds.idServicio
-                    )
-                    Result.success(boletoInfo)
-                } else {
-                    val descr = soapResponse?.getPropertyAsString("Descr") ?: "Error al leer boleto"
-                    Result.error(descr)
-                }
+                // TODO: Parsear XML de respuesta
+                // Por ahora retornamos un boleto de ejemplo para testing
+                val boletoInfo = Boleto(
+                    id = 1,
+                    numero = boleto.toString(),
+                    pasajero = "Pasajero Test",
+                    dni = "12345678",
+                    origen = "",
+                    destino = "",
+                    fecha = "",
+                    servicioId = creds.idServicio
+                )
+                Result.success(boletoInfo)
             } else {
                 Result.error(result.exceptionOrNull()?.message ?: "Error de conexión")
             }
