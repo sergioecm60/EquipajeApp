@@ -3,7 +3,7 @@
 Aplicación Android para control de equipaje en servicios de transporte utilizando WebService SOAP.
 
 <p align="center">
-  <img src="docs/logo-secm.png" alt="SECM Soluciones TI" width="200"/>
+  <img src="docs/logo%20menos%20peso.png" alt="SECM Soluciones TI" width="200"/>
 </p>
 
 ## 📱 Descripción
