@@ -29,6 +29,9 @@ class PreferencesManager(
         private val SP_USUARIO = stringPreferencesKey("sp_usuario")
         private val SP_PASSWORD = stringPreferencesKey("sp_password")
         private val SP_IDSERVICIO = intPreferencesKey("sp_idservicio")
+        
+        // Lista de servicios del login
+        private val SERVICIOS_JSON = stringPreferencesKey("servicios_json")
     }
 
     val userFlow: Flow<UserPreferences?> = context.dataStore.data.map { prefs ->

@@ -98,11 +98,22 @@ data class EqLoginRequest(
     @SerializedName("Password") val password: String                // CHAR(7)
 )
 
+/**
+ * Servicio devuelto por Eq_Login
+ */
+data class ServicioLoginItem(
+    val idServicio: Int,
+    val servicio: String,  // Ej: "EPA ASU-ENC 31/01/2026 17:30"
+    val origen: String?,
+    val destino: String?,
+    val horaSalida: String?,
+    val horaLlegada: String?
+)
+
 data class EqLoginResponse(
     @SerializedName("Error") val error: Int,                        // INTEGER (0 = OK)
     @SerializedName("Descr") val descr: String?,                    // STRING (OK / Mensaje de Error)
-    @SerializedName("IdServicio") val idServicio: Int?,             // INTEGER
-    @SerializedName("Servicio") val servicio: String?                // CHAR(30) - Ej: "EPA ASU-ENC 31/01/2026 17:30"
+    @SerializedName("Servicios") val servicios: List<ServicioLoginItem>? = null  // Lista de servicios del chofer
 )
 
 /**

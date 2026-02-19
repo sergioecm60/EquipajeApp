@@ -175,11 +175,69 @@ class SoapClient {
     }
     
     private fun parseLoginResponse(soapObject: SoapObject): EqLoginResponse {
+        val error = soapObject.getPropertySafelyAsString("Error")?.toIntOrNull() ?: -1
+        val descr = soapObject.getPropertySafelyAsString("Descr")
+        
+        // Si hay error, no hay servicios
+        if (error != 0) {
+            return EqLoginResponse(error = error, descr = descr, servicios = null)
+        }
+        
+        // Parsear lista de servicios
+        val servicios = mutableListOf<ServicioLoginItem>()
+        
+        try {
+            // El DataSet viene en la propiedad "Servicios" o similar
+            // Intentar obtener como SoapObject primero
+            val serviciosObj = soapObject.getProperty("Servicios") as? SoapObject
+            
+            if (serviciosObj != null) {
+                // Iterar sobre los elementos
+                for (i in 0 until serviciosObj.propertyCount) {
+                    val servicioObj = serviciosObj.getProperty(i) as? SoapObject
+                    if (servicioObj != null) {
+                        val id = servicioObj.getPropertySafelyAsString("IdServicio")?.toIntOrNull() ?: 0
+                        val nombre = servicioObj.getPropertySafelyAsString("Servicio") ?: ""
+                        val origen = servicioObj.getPropertySafelyAsString("Origen")
+                        val destino = servicioObj.getPropertySafelyAsString("Destino")
+                        val horaSalida = servicioObj.getPropertySafelyAsString("HoraSalida")
+                        val horaLlegada = servicioObj.getPropertySafelyAsString("HoraLlegada")
+                        
+                        servicios.add(ServicioLoginItem(
+                            idServicio = id,
+                            servicio = nombre,
+                            origen = origen,
+                            destino = destino,
+                            horaSalida = horaSalida,
+                            horaLlegada = horaLlegada
+                        ))
+                    }
+                }
+            }
+            
+            // Si no se encontraron servicios en lista, intentar leer uno solo (formato antiguo)
+            if (servicios.isEmpty()) {
+                val id = soapObject.getPropertySafelyAsString("IdServicio")?.toIntOrNull() ?: 0
+                val nombre = soapObject.getPropertySafelyAsString("Servicio") ?: ""
+                if (id > 0) {
+                    servicios.add(ServicioLoginItem(
+                        idServicio = id,
+                        servicio = nombre,
+                        origen = null,
+                        destino = null,
+                        horaSalida = null,
+                        horaLlegada = null
+                    ))
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parseando servicios", e)
+        }
+        
         return EqLoginResponse(
-            error = soapObject.getPropertySafelyAsString("Error")?.toIntOrNull() ?: -1,
-            descr = soapObject.getPropertySafelyAsString("Descr"),
-            idServicio = soapObject.getPropertySafelyAsString("IdServicio")?.toIntOrNull() ?: 0,
-            servicio = soapObject.getPropertySafelyAsString("Servicio")
+            error = error,
+            descr = descr,
+            servicios = servicios
         )
     }
 }

@@ -34,19 +34,18 @@ La app ya está configurada para conectar con el WebService Delta. No requiere c
 ## Estructura del Proyecto
 
 ```
-app/
-├── src/main/java/com/transporte/equipajeapp/
-│   ├── data/
-│   │   ├── remote/          # Cliente SOAP
-│   │   ├── repository/      # Repositorios
-│   │   └── local/           # Preferencias
-│   ├── domain/              # Modelos y casos de uso
-│   ├── ui/                  # Actividades y ViewModels
-│   └── di/                  # Inyección de dependencias
-├── src/main/res/            # Layouts y recursos
-└── build.gradle.kts         # Dependencias
-
-docs/                        # Documentación
+EquipajeApp/
+├── app/                        # Código fuente Android
+│   ├── src/main/java/...       # Código Kotlin
+│   ├── src/main/res/           # Layouts y recursos
+│   └── build.gradle.kts        # Dependencias del módulo
+├── docs/                       # Documentación
+│   ├── WEBSERVICE_DELTA_CONFIG.md  # Configuración SOAP
+│   ├── PROGRAMADOR.md          # Guía para desarrolladores
+│   ├── PROYECTO.md             # Especificación del proyecto
+│   └── WEBSERVICE_CONFIG.md    # Configuración legacy (referencia)
+├── build.gradle.kts            # Configuración Gradle raíz
+└── README.md                   # Este archivo
 ```
 
 ## Documentación

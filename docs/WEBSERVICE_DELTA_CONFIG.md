@@ -4,179 +4,189 @@
 
 **URL Base:** `http://servidordeltapy.dyndns.org/WSDelta_POS/wsdelta_pos.asmx`
 
-**Tipo:** SOAP 1.1 / SOAP 1.2
+**Tipo:** SOAP 1.1
 
 **Namespace:** `Delta`
 
 ## Métodos Disponibles
 
 ### 1. Eq_Login - Autenticación
-```xml
-POST /WSDelta_POS/wsdelta_pos.asmx HTTP/1.1
-Host: servidordeltapy.dyndns.org
-Content-Type: text/xml; charset=utf-8
-SOAPAction: "Delta/Eq_Login"
+**Uso:** Login del chofer con número de interno
 
-<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-               xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
-               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <Eq_Login xmlns="Delta">
-      <NroInterno>string</NroInterno>
-      <PasswordUsuario>string</PasswordUsuario>
-      <Usuario>string</Usuario>
-      <Password>string</Password>
-    </Eq_Login>
-  </soap:Body>
-</soap:Envelope>
+**Request:**
+```xml
+<Eq_Login xmlns="Delta">
+  <NroInterno>string</NroInterno>        <!-- CHAR(10) -->
+  <PasswordUsuario>string</PasswordUsuario>  <!-- CHAR(7) -->
+  <Usuario>string</Usuario>              <!-- CHAR(7) - Sistema: dUDl7aR -->
+  <Password>string</Password>            <!-- CHAR(7) - Sistema: dPu8rSH -->
+</Eq_Login>
 ```
 
-**Parámetros:**
-- NroInterno: Número de interno del chofer (10 chars, con padding)
-- PasswordUsuario: Contraseña del chofer (7 chars, con padding)
-- Usuario: Usuario fijo del sistema (7 chars) = `dUDl7aR`
-- Password: Password fijo del sistema (7 chars) = `dPu8rSHsA*` (usar primeros 7)
+**Response:**
+- Error = 0: OK
+- Error ≠ 0: Mensaje de error en Descr
+- **Devuelve LISTA de servicios asignados al chofer** (puede ser 1 o varios)
 
-### 2. Eq_LeerBoleto - Leer boleto
+---
+
+### 2. Eq_LeerBoleto - Leer datos de boleto
+**Uso:** Validar que un boleto pertenece al servicio y obtener datos del pasajero
+
+**Request:**
 ```xml
 <Eq_LeerBoleto xmlns="Delta">
-  <Empresa>string</Empresa>
-  <Boleto>string</Boleto>
-  <IdServicio>int</IdServicio>
-  <Usuario>string</Usuario>
-  <Password>string</Password>
+  <Empresa>string</Empresa>          <!-- CHAR(3) - Ej: "EPA" -->
+  <Boleto>string</Boleto>            <!-- BIGINT - Ej: 100010720003193 -->
+  <IdServicio>int</IdServicio>       <!-- INTEGER -->
+  <Usuario>string</Usuario>          <!-- CHAR(7) -->
+  <Password>string</Password>        <!-- CHAR(7) -->
 </Eq_LeerBoleto>
 ```
 
-### 3. Eq_LeerEquipaje - Validar marbete
+**Response:**
+- **Error = 0**: Boleto válido, devuelve datos del pasajero
+  - IdBoleto
+  - Butaca (número de asiento)
+  - Pasajero (nombre y apellido)
+  - Documento (DNI)
+  
+- **Error ≠ 0**: Boleto NO pertenece al servicio o error
+  - Mostrar mensaje: "El boleto no pertenece a este servicio" o el error devuelto
+
+**Flujo:**
+1. Chofer escanea boleto
+2. App envía IdServicio (del login) + número de boleto
+3. Si es válido: muestra datos del pasajero
+4. Si es inválido: muestra error
+
+---
+
+### 3. Eq_LeerEquipaje - Asociar marbete con boleto
+**Uso:** Registrar un marbete a un boleto cuando se sube equipaje a la bodega
+
+**Request:**
 ```xml
 <Eq_LeerEquipaje xmlns="Delta">
-  <IdBoleto>int</IdBoleto>
-  <Marbete>string</Marbete>
-  <Usuario>string</Usuario>
-  <Password>string</Password>
+  <IdServicio>int</IdServicio>       <!-- INTEGER -->
+  <IdBoleto>int</IdBoleto>           <!-- INTEGER - ID del boleto leído -->
+  <Marbete>string</Marbete>          <!-- VARCHAR(15) - Ej: "MARBETE000KKK002" -->
+  <Usuario>string</Usuario>          <!-- CHAR(7) -->
+  <Password>string</Password>        <!-- CHAR(7) -->
 </Eq_LeerEquipaje>
 ```
 
-### 4. Eq_ListaDeEquipajes - Listar equipajes
+**Response:**
+- **Error = 0**: Marbete asociado correctamente al boleto
+- **Error ≠ 0**: Error al asociar (marbete inválido, ya usado, etc.)
+
+**Flujo:**
+1. Chofer lee boleto (Eq_LeerBoleto) → obtiene IdBoleto
+2. Chofer escanea marbete del equipaje
+3. App envía: IdServicio + IdBoleto + Marbete
+4. Sistema asocia el marbete con ese pasajero/boleto
+5. Equipaje queda registrado para ese pasajero
+
+---
+
+### 4. Eq_ListaDeEquipajes - Consultar equipaje de pasajero
+**Uso:** Consultar qué marbetes tiene asociados un pasajero (para Gendarmería/Tránsito)
+
+**Request:**
 ```xml
 <Eq_ListaDeEquipajes xmlns="Delta">
-  <IdServicio>int</IdServicio>
-  <Usuario>string</Usuario>
-  <Password>string</Password>
+  <IdServicio>int</IdServicio>       <!-- INTEGER -->
+  <Usuario>string</Usuario>          <!-- CHAR(7) -->
+  <Password>string</Password>        <!-- CHAR(7) -->
 </Eq_ListaDeEquipajes>
 ```
 
-## Configuración en la App
+**Response:**
+- **Error = 0**: Lista de pasajeros con sus marbetes
+  - HD_IdBoleto
+  - Texto (formato: "15 -39503917- BARRIOS, ARTURO MOISES 0014367,0014368")
+    - Cantidad de equipajes
+    - Documento
+    - Nombre y apellido
+    - Lista de marbetes separados por coma/espacio
 
-### 1. Dependencias (ya agregadas en build.gradle.kts)
-```kotlin
-implementation("com.google.code.ksoap2-android:ksoap2-android:3.6.4")
-```
+**Flujo:**
+1. Micro es retenido por Gendarmería/Tránsito
+2. Agente pide verificar equipaje de un pasajero
+3. Chofer escanea boleto del pasajero (Eq_LeerBoleto) → obtiene IdBoleto
+4. App consulta Eq_ListaDeEquipajes → obtiene lista de equipajes del servicio
+5. App filtra y muestra los marbetes asociados a ese IdBoleto
+6. Agente puede ir a la bodega y buscar el equipaje por el número de marbete
 
-### 2. Cliente SOAP
-Archivo: `app/src/main/java/com/transporte/equipajeapp/data/remote/SoapClient.kt`
+---
 
-Ya está configurado con:
-- URL: `http://servidordeltapy.dyndns.org/WSDelta_POS/wsdelta_pos.asmx`
-- Namespace: `Delta`
-- Timeout: 30 segundos
-- Version SOAP: 1.1
+## Flujos de Uso
 
-### 3. Cambiar a WebService Real
+### FLUJO 1: Login y Selección de Servicio
+1. Chofer abre app
+2. Ingresa número de interno
+3. App llama `Eq_Login`
+4. Sistema devuelve lista de servicios asignados
+5. Chofer selecciona en qué servicio está embarcando
 
-En `app/src/main/java/com/transporte/equipajeapp/di/AppModule.kt`:
+### FLUJO 2: Registrar Equipaje (Subir a Bodega)
+1. Pasajero llega con boleto y equipaje
+2. Chofer escanea **boleto** (`Eq_LeerBoleto`)
+   - Si error: "Boleto no pertenece a este servicio"
+   - Si OK: Muestra datos del pasajero
+3. Chofer escanea **marbete** del equipaje
+4. App llama `Eq_LeerEquipaje` (IdBoleto + Marbete)
+5. Sistema asocia marbete con boleto
+6. Equipaje queda registrado
 
-**Cambiar esto:**
-```kotlin
-@Provides
-@Singleton
-fun provideAuthRepository(): AuthRepository = AuthRepositoryMock()
+### FLUJO 3: Consultar Equipaje (Gendarmería/Tránsito)
+1. Micro es retenido
+2. Agente pide verificar equipaje de pasajero
+3. Chofer escanea **boleto** del pasajero (`Eq_LeerBoleto`)
+4. App obtiene IdBoleto
+5. App llama `Eq_ListaDeEquipajes` (IdServicio)
+6. App muestra: "Pasajero X tiene marbetes: 0014367, 0014368"
+7. Agente busca esos marbetes en la bodega
 
-@Provides
-@Singleton
-fun provideServicioRepository(): ServicioRepository = ServicioRepositoryMock()
-
-@Provides
-@Singleton
-fun provideEquipajeRepository(): EquipajeRepository = EquipajeRepositoryMock()
-```
-
-**Por esto:**
-```kotlin
-@Provides
-@Singleton
-fun provideSoapClient(): SoapClient = SoapClient()
-
-@Provides
-@Singleton
-fun provideAuthRepository(soapClient: SoapClient, prefs: PreferencesManager): AuthRepository = 
-    AuthRepositoryImpl(soapClient, prefs)
-
-@Provides
-@Singleton
-fun provideServicioRepository(soapClient: SoapClient, prefs: PreferencesManager): ServicioRepository = 
-    ServicioRepositoryImpl(soapClient, prefs)
-
-@Provides
-@Singleton
-fun provideEquipajeRepository(soapClient: SoapClient, prefs: PreferencesManager): EquipajeRepository = 
-    EquipajeRepositoryImpl(soapClient, prefs)
-```
-
-**IMPORTANTE:** También hay que actualizar los repositorios (AuthRepositoryImpl, etc.) para que reciban SoapClient.
-
-## Para Volver a Modo Mock (Pruebas Offline)
-
-Si necesitás probar sin conexión al servidor:
-
-### Opción 1: Usar Mocks (sin servidor)
-En `AppModule.kt`, volver a:
-```kotlin
-@Provides
-@Singleton
-fun provideAuthRepository(): AuthRepository = AuthRepositoryMock()
-
-@Provides
-@Singleton
-fun provideServicioRepository(): ServicioRepository = ServicioRepositoryMock()
-
-@Provides
-@Singleton
-fun provideEquipajeRepository(): EquipajeRepository = EquipajeRepositoryMock()
-```
-
-Datos de prueba disponibles:
-- Internos: 1001, 1002, 1003
-- Servicios: Buenos Aires ↔ Rosario, Buenos Aires ↔ La Plata
-- Boletos: QR_BOLETO_001 a QR_BOLETO_005
-- Ribetes: QR_RIBETE_001 a QR_RIBETE_005
-
-### Opción 2: Servidor Local PHP
-Si querés usar el servidor PHP local (requiere Laragon/XAMPP):
-
-1. Asegurar que esté corriendo Apache
-2. Verificar que la BD MySQL tenga datos
-3. Cambiar la URL en SoapClient o usar Retrofit con la API local
+---
 
 ## Credenciales Fijas del Sistema
 
-Para todos los métodos SOAP, usar:
+Para **todos** los métodos SOAP:
 - **Usuario:** `dUDl7aR` (7 caracteres)
-- **Password:** `dPu8rSH` (primeros 7 de `dPu8rSHsA*`)
+- **Password:** `dPu8rSH` (7 caracteres - primeros 7 de `dPu8rSHsA*`)
 
-## Archivos Importantes
+---
+
+## Datos del Chofer
+
+En Eq_Login:
+- **NroInterno:** Número de interno del chofer (ej: "1001")
+- **PasswordUsuario:** Password del chofer (si no tiene, espacios en blanco)
+
+---
+
+## Notas Importantes
+
+1. **Eq_Login devuelve LISTA**: Puede devolver 1 o varios servicios. El chofer debe seleccionar cuál está haciendo.
+
+2. **Eq_LeerBoleto valida**: Si el boleto no está en el servicio, devuelve error.
+
+3. **Eq_LeerEquipaje asocia**: Relaciona el marbete con el boleto (para subir equipaje).
+
+4. **Eq_ListaDeEquipajes consulta**: Muestra TODOS los equipajes del servicio con sus pasajeros.
+
+5. **Formato de respuestas**: Las respuestas son DataSets XML (formato complejo de .NET).
+
+6. **Padding**: Los campos de texto deben tener padding con espacios hasta su longitud máxima.
+
+---
+
+## Archivos de la App
 
 - `SoapClient.kt` - Cliente SOAP
-- `AppModule.kt` - Configuración de inyección de dependencias
-- `AuthRepositoryImpl.kt` - Login
-- `ServicioRepositoryImpl.kt` - Servicios y boletos
-- `EquipajeRepositoryImpl.kt` - Equipajes y marbetes
-
-## Notas
-
-- Las respuestas son DataSets XML (formato complejo)
-- Los campos de texto deben tener padding con espacios
-- Timeout configurado a 30 segundos
-- Usar `dotNet = true` en el envelope (servidor es .NET)
+- `AuthRepositoryImpl.kt` - Login (maneja lista de servicios)
+- `ServicioRepositoryImpl.kt` - Leer boleto
+- `EquipajeRepositoryImpl.kt` - Asociar marbete y listar equipajes
+- `ServicioDetalleActivity.kt` - UI para registrar equipaje
+- `DashboardActivity.kt` - Lista de servicios (del login)

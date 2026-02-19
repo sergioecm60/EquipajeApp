@@ -36,10 +36,20 @@ class AuthRepositoryImpl @Inject constructor(
             if (result.isSuccess) {
                 val response = result.getOrNull()!!
                 if (response.error == 0) {
+                    // El login devuelve una LISTA de servicios
+                    val servicios = response.servicios
+                    
+                    if (servicios.isNullOrEmpty()) {
+                        return Result.error("No hay servicios asignados para este interno")
+                    }
+                    
+                    // Tomamos el primer servicio como referencia (o podríamos guardar todos)
+                    val primerServicio = servicios.first()
+                    
                     val usuario = Usuario(
-                        id = response.idServicio ?: 0,
+                        id = primerServicio.idServicio,
                         interno = interno.trim(),
-                        nombre = response.servicio?.trim() ?: "Chofer $interno",
+                        nombre = primerServicio.servicio.trim(),
                         empresa = "Delta"  // Del nombre del WS
                     )
                     
@@ -58,6 +68,10 @@ class AuthRepositoryImpl @Inject constructor(
                         password = SYSTEM_PASSWORD,
                         idServicio = usuario.id
                     )
+                    
+                    // Guardar también la lista completa de servicios (si se puede)
+                    // Esto es para que el Dashboard pueda mostrar todos
+                    preferencesManager.saveServicios(servicios)
                     
                     Result.success(usuario)
                 } else {
