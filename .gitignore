@@ -1,0 +1,34 @@
+# Android Studio
+.idea/
+.gradle/
+.kotlin/
+.vscode/
+
+# Builduild/
+app/build/
+*.apk
+*.ap_
+*.aab
+
+# Local configuration
+local.properties
+
+# Gradle
+.gradle/
+gradlew
+gradlew.bat
+gradle/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Captures
+captures/
+
+# External native build
+.externalNativeBuild/
+.cxx/

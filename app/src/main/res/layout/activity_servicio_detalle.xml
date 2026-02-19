@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Título -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Detalle del Servicio"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Card con info del servicio -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="4dp"
+            android:layout_marginBottom="24dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/tvRuta"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Buenos Aires → Rosario"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/purple_500"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/tvHorario"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Salida: 12:30 - Llegada: 15:00"
+                    android:textSize="16sp"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:id="@+id/tvInterno"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Interno: 1001"
+                    android:textSize="16sp"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:id="@+id/tvChofer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Chofer: Juan Pérez"
+                    android:textSize="16sp" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Sección de escaneo -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Registro de Equipaje"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Info del boleto escaneado -->
+        <TextView
+            android:id="@+id/tvBoletoInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Boleto: -\nPasajero: -"
+            android:textSize="16sp"
+            android:background="@android:color/holo_green_light"
+            android:padding="12dp"
+            android:visibility="gone"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Botón Escanear Boleto -->
+        <Button
+            android:id="@+id/btnEscanearBoleto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="1. Escanear Boleto del Pasajero"
+            android:textAllCaps="false"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Botón Escanear Marbete -->
+        <Button
+            android:id="@+id/btnEscanearMarbete"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="2. Escanear Marbete del Equipaje"
+            android:textAllCaps="false"
+            android:enabled="false"
+            android:alpha="0.5"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Botón Registrar -->
+        <Button
+            android:id="@+id/btnRegistrarEquipaje"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Registrar Equipaje"
+            android:textAllCaps="false"
+            android:backgroundTint="@android:color/holo_blue_dark"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Botón Volver -->
+        <Button
+            android:id="@+id/btnVolver"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Volver a Servicios"
+            android:textAllCaps="false"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+    </LinearLayout>
+</ScrollView>

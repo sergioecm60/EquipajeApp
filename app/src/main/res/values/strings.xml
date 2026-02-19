@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Equipaje App</string>
+    <string name="login_title">Ingreso Interno</string>
+    <string name="hint_interno">Número de Interno</string>
+    <string name="hint_password">Contraseña</string>
+    <string name="btn_ingresar">Ingresar</string>
+    <string name="error_interno_required">El número de interno es obligatorio</string>
+    <string name="error_password_required">La contraseña es obligatoria</string>
+    <string name="error_login_failed">Credenciales inválidas</string>
+    <string name="dashboard_title">Mis Servicios</string>
+    <string name="no_servicios">No hay servicios asignados para hoy</string>
+    <string name="seleccionar_servicio">Seleccionar Servicio</string>
+    <string name="escanear_qr">Escanear QR</string>
+    <string name="asociar_equipaje">Asociar Equipaje</string>
+    <string name="equipaje_asociado">Equipaje asociado correctamente</string>
+    <string name="error_qr_invalid">Código QR inválido</string>
+    <string name="permission_camera_required">Se requiere permiso de cámara</string>
+    <string name="btn_logout">Cerrar Sesión</string>
+    <string name="servicio_actual">Servicio Actual</string>
+    <string name="boleto_label">Boleto</string>
+    <string name="pasajero_label">Pasajero</string>
+    <string name="equipaje_label">Equipaje</string>
+    
+    <!-- Contacto y Ayuda -->
+    <string name="contacto_title">Contacto y Ayuda</string>
+    <string name="soporte_telefono">Soporte Técnico</string>
+    <string name="soporte_email">support@transporte.com</string>
+    <string name="soporte_telefono_numero">+54 11 1234-5678</string>
+    <string name="ayuda_emergencia">Emergencia 24/7</string>
+    <string name="ayuda_emergencia_numero">+54 9 11 8765-4321</string>
+    <string name="web_empresa">www.transporte.com</string>
+    
+    <!-- Información App -->
+    <string name="version_app">Versión 1.0</string>
+    <string name="acerca_de">Acerca de</string>
+    <string name="manual_usuario">Manual de Usuario</string>
+    <string name="terminos_condiciones">Términos y Condiciones</string>
+</resources>
