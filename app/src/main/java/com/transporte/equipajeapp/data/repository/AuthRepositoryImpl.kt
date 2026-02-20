@@ -44,7 +44,9 @@ class AuthRepositoryImpl @Inject constructor(
                     }
                     
                     // Guardar todos los servicios como JSON
-                    val serviciosJson = servicios.joinToString("|") { "${it.idServicio};${it.servicio};${it.origen ?: ""};${it.destino ?: ""}" }
+                    val serviciosJson = servicios.joinToString("|") { 
+                        "${it.idServicio};${it.servicio};${it.empresa ?: ""};${it.origen ?: ""};${it.destino ?: ""};${it.horaSalida ?: ""};${it.horaLlegada ?: ""};${it.fecha ?: ""}" 
+                    }
                     preferencesManager.saveServicios(serviciosJson)
                     
                     // Tomamos el primer servicio como referencia
@@ -54,7 +56,7 @@ class AuthRepositoryImpl @Inject constructor(
                         id = primerServicio.idServicio,
                         interno = interno.trim(),
                         nombre = primerServicio.servicio.trim(),
-                        empresa = "Delta"  // Del nombre del WS
+                        empresa = primerServicio.empresa ?: "Delta"
                     )
                     
                     // Guardar en preferencias

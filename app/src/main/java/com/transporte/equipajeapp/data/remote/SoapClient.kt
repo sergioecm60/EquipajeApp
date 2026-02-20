@@ -74,7 +74,7 @@ class SoapClient {
             val response = client.newCall(httpRequest).execute()
             val responseBody = response.body?.string()
             
-            Log.d(TAG, "Respuesta Eq_Login: $responseBody")
+            Log.d(TAG, "Respuesta Eq_Login RAW: >>>${responseBody}<<<")
             
             if (response.isSuccessful && responseBody != null) {
                 val loginResponse = parseLoginResponse(responseBody)
@@ -232,6 +232,56 @@ class SoapClient {
         }
     }
     
+    private data class ParsedServicio(
+        val empresa: String,
+        val origen: String,
+        val destino: String,
+        val fecha: String?,
+        val hora: String?
+    )
+
+    private fun parsearCampoServicio(servicioText: String): ParsedServicio {
+        // Formato: "EPA FAR-CDE 19/02/26 22:00" o "EPA ASU-ENC 19/02/26 23:30"
+        // Empresa (1-3 chars) + Espacio + Ruta (ORIGEN-DEST) + Espacio + Fecha (DD/MM/YY) + Espacio + Hora (HH:MM)
+        
+        val fechaPattern = Regex("\\d{2}/\\d{2}/\\d{2,4}")
+        val horaPattern = Regex("\\d{2}:\\d{2}")
+        
+        val fechaMatch = fechaPattern.find(servicioText)
+        val horaMatch = horaPattern.find(servicioText)
+        
+        val fecha = fechaMatch?.value
+        val hora = horaMatch?.value
+        
+        // Convertir fecha de DD/MM/YY a DD/MM/AAAA
+        val fechaFormateada = fecha?.let {
+            val parts = it.split("/")
+            if (parts.size == 3) {
+                val year = parts[2]
+                val yearCompleto = if (year.length == 2) "20$year" else year
+                "${parts[0]}/${parts[1]}/$yearCompleto"
+            } else it
+        }
+        
+        // Obtener texto sin fecha y hora
+        var sinFechaHora = servicioText
+        fechaMatch?.let { sinFechaHora = sinFechaHora.replace(it.value, "") }
+        horaMatch?.let { sinFechaHora = sinFechaHora.replace(it.value, "") }
+        sinFechaHora = sinFechaHora.trim()
+        
+        // Ahora queda: "EPA FAR-CDE" -> dividir en empresa y ruta
+        val partes = sinFechaHora.split(" ", limit = 2)
+        val empresa = partes.getOrNull(0) ?: ""
+        val ruta = partes.getOrNull(1) ?: ""
+        
+        // Ruta: "FAR-CDE" -> origen y destino
+        val rutaPartes = ruta.split("-", limit = 2)
+        val origen = rutaPartes.getOrNull(0) ?: ""
+        val destino = rutaPartes.getOrNull(1) ?: ""
+        
+        return ParsedServicio(empresa, origen, destino, fechaFormateada, hora)
+    }
+    
     private fun parseLoginResponse(xml: String): EqLoginResponse {
         return try {
             val factory = XmlPullParserFactory.newInstance()
@@ -279,13 +329,18 @@ class SoapClient {
                     XmlPullParser.END_TAG -> {
                         if (parser.name == "Eq_Login" && inEqLogin) {
                             if (currentIdServicio != null && currentServicio != null) {
+                                Log.d("SoapClient", "Servicio raw: '$currentServicio'")
+                                val parsed = parsearCampoServicio(currentServicio!!)
+                                Log.d("SoapClient", "Parsed - empresa: '${parsed.empresa}', origen: '${parsed.origen}', destino: '${parsed.destino}', fecha: '${parsed.fecha}', hora: '${parsed.hora}'")
                                 servicios.add(ServicioLoginItem(
                                     idServicio = currentIdServicio!!,
                                     servicio = currentServicio!!,
-                                    origen = null,
-                                    destino = null,
-                                    horaSalida = null,
-                                    horaLlegada = null
+                                    empresa = parsed.empresa,
+                                    origen = parsed.origen,
+                                    destino = parsed.destino,
+                                    horaSalida = parsed.hora ?: "",
+                                    horaLlegada = parsed.hora ?: "",
+                                    fecha = parsed.fecha
                                 ))
                             }
                             inEqLogin = false
@@ -299,6 +354,99 @@ class SoapClient {
         } catch (e: Exception) {
             Log.e(TAG, "Error parseando XML", e)
             EqLoginResponse(error = -1, descr = "Error parseando respuesta: ${e.message}", servicios = null)
+        }
+    }
+
+    data class EquipajeResult(val error: Int, val descr: String?)
+    
+    private fun parseEquipajeResponse(xml: String): EquipajeResult {
+        return try {
+            val factory = XmlPullParserFactory.newInstance()
+            factory.isNamespaceAware = true
+            val parser = factory.newPullParser()
+            parser.setInput(StringReader(xml))
+            
+            var error = -1
+            var descr: String? = null
+            
+            var eventType = parser.eventType
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                when (eventType) {
+                    XmlPullParser.START_TAG -> {
+                        when (parser.name) {
+                            "Error" -> error = parser.nextText().toIntOrNull() ?: -1
+                            "Descr" -> descr = parser.nextText()
+                        }
+                    }
+                }
+                eventType = parser.next()
+            }
+            
+            EquipajeResult(error, descr)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parseando XML", e)
+            EquipajeResult(-1, "Error parseando: ${e.message}")
+        }
+    }
+
+    data class EquipajeListItem(
+        val idBoleto: Int,
+        val marbete: String,
+        val descripcion: String?,
+        val observaciones: String?
+    )
+
+    private fun parseListaEquipajesResponse(xml: String): List<EquipajeListItem> {
+        return try {
+            val factory = XmlPullParserFactory.newInstance()
+            factory.isNamespaceAware = true
+            val parser = factory.newPullParser()
+            parser.setInput(StringReader(xml))
+            
+            val equipajes = mutableListOf<EquipajeListItem>()
+            var inEquipaje = false
+            var currentIdBoleto: Int? = null
+            var currentMarbete: String? = null
+            var currentDescripcion: String? = null
+            var currentObservaciones: String? = null
+            
+            var eventType = parser.eventType
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                when (eventType) {
+                    XmlPullParser.START_TAG -> {
+                        when (parser.name) {
+                            "Eq_ListaDeEquipajes" -> inEquipaje = true
+                            "IdBoleto" -> if (inEquipaje) currentIdBoleto = parser.nextText().toIntOrNull()
+                            "Marbete" -> if (inEquipaje) currentMarbete = parser.nextText()
+                            "Descripcion" -> if (inEquipaje) currentDescripcion = parser.nextText()
+                            "Observaciones" -> if (inEquipaje) currentObservaciones = parser.nextText()
+                        }
+                    }
+                    XmlPullParser.END_TAG -> {
+                        if (parser.name == "Eq_ListaDeEquipajes" && inEquipaje) {
+                            if (currentIdBoleto != null && currentMarbete != null) {
+                                equipajes.add(EquipajeListItem(
+                                    idBoleto = currentIdBoleto!!,
+                                    marbete = currentMarbete!!,
+                                    descripcion = currentDescripcion,
+                                    observaciones = currentObservaciones
+                                ))
+                            }
+                            inEquipaje = false
+                            currentIdBoleto = null
+                            currentMarbete = null
+                            currentDescripcion = null
+                            currentObservaciones = null
+                        }
+                    }
+                }
+                eventType = parser.next()
+            }
+            
+            equipajes
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parseando lista equipajes", e)
+            emptyList()
         }
     }
 }

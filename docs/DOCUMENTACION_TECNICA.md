@@ -1,8 +1,8 @@
 # EquipajeApp - Documentación Técnica Completa
 
 **Fecha:** 19 de Febrero de 2026  
-**Versión:** 1.1.0  
-**Estado:** En desarrollo - WebService integrado, pendiente testing con datos reales
+**Versión:** 1.1.1  
+**Estado:** Funcional - WebService integrado, APK compilando correctamente
 
 ---
 
@@ -32,9 +32,9 @@ Aplicación Android para choferes de Delta Transporte que permite:
 **Estado actual:**
 - ✅ Conectada al WebService real (SOAP)
 - ✅ Compilación exitosa
-- ✅ APK generada y subida a GitHub
+- ✅ APK generada
+- ✅ Parseo XML implementado en repositories
 - ⏳ Pendiente: Testing con datos reales del WebService
-- ⏳ Pendiente: Parseo completo de respuestas XML
 
 ---
 
@@ -469,7 +469,8 @@ Agente busca esos marbetes en bodega
 - **Idioma:** Kotlin (100%)
 - **Min SDK:** 24 (Android 7.0)
 - **Target SDK:** 34 (Android 14)
-- **Java:** 17
+- **Java:** JDK 17+ (probado con JDK 21 de Android Studio)
+- **Nota:** Si hay error "IllegalArgumentException: 25", usar Java 17/21 configurando JAVA_HOME
 
 ### Sobre el Escaneo QR
 - **Librería:** ML Kit de Google (más moderna que ZXing)

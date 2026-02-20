@@ -104,10 +104,12 @@ data class EqLoginRequest(
 data class ServicioLoginItem(
     val idServicio: Int,
     val servicio: String,  // Ej: "EPA ASU-ENC 31/01/2026 17:30"
+    val empresa: String?,
     val origen: String?,
     val destino: String?,
     val horaSalida: String?,
-    val horaLlegada: String?
+    val horaLlegada: String?,
+    val fecha: String?
 )
 
 data class EqLoginResponse(

@@ -32,10 +32,19 @@
                 tools:text="Buenos Aires - Cordoba" />
 
             <TextView
-                android:id="@+id/tvHora"
+                android:id="@+id/tvFecha"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="@dimen/text_size_small"
+                tools:text="31/01/2026" />
+
+            <TextView
+                android:id="@+id/tvHora"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
                 android:textColor="@color/text_secondary"
                 android:textSize="@dimen/text_size_small"
                 tools:text="08:00 - 16:00" />

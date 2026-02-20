@@ -1,24 +1,24 @@
 # Resumen de Estado - EquipajeApp
 
 **📅 Fecha:** 19/02/2026  
-**🔖 Versión:** 1.1.0  
-**✅ Estado:** Funcional - Pendiente testing con datos reales
+**🔖 Versión:** 1.1.1  
+**✅ Estado:** Funcional - APK compilando correctamente
 
 ---
 
 ## 🎯 Estado General
 
 ```
-[████████████████████░░░░░] 85% Completo
+[██████████████████████░░░░] 90% Completo
 
 ✅ LISTO                    ⏳ PENDIENTE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 • Arquitectura MVVM         • Testing WebService real
-• WebService SOAP           • Parseo XML completo
-• Login con interno         • Interno de prueba
-• Escáner QR                • Manejo de errores WS
-• APK compilada             • UI final
-• GitHub configurado        • Documentación parseo
+• WebService SOAP           • Interno de prueba
+• Login con interno         • Manejo de errores WS
+• Escáner QR                • UI final
+• APK compilada             • Documentación parseo
+• Parseo XML               • Testing completo
 ```
 
 ---
@@ -47,10 +47,10 @@
 
 | Método | Implementación | Parseo Respuesta |
 |--------|---------------|------------------|
-| Eq_Login | ✅ OkHttp | ⚠️ Básico (solo Error/Descr) |
-| Eq_LeerBoleto | ✅ OkHttp | ❌ Devuelve String crudo |
-| Eq_LeerEquipaje | ✅ OkHttp | ❌ Devuelve String crudo |
-| Eq_ListaDeEquipajes | ✅ OkHttp | ❌ Devuelve String crudo |
+| Eq_Login | ✅ OkHttp | ✅ Completo |
+| Eq_LeerBoleto | ✅ OkHttp | ✅ Implementado |
+| Eq_LeerEquipaje | ✅ OkHttp | ✅ Implementado |
+| Eq_ListaDeEquipajes | ✅ OkHttp | ✅ Implementado |
 
 **Problema conocido:** El parseo XML completo está pendiente.
 

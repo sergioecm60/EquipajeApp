@@ -40,6 +40,7 @@ class ServicioAdapter(
 
         fun bind(servicio: Servicio) {
             binding.tvOrigenDestino.text = "${servicio.origen} - ${servicio.destino}"
+            binding.tvFecha.text = servicio.fecha ?: ""
             binding.tvHora.text = "${servicio.horaSalida} - ${servicio.horaLlegada}"
             binding.tvEmpresa.text = "Empresa: ${servicio.empresa}"
         }
