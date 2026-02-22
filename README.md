@@ -17,7 +17,7 @@ Aplicación móvil para choferes que permite:
 
 ## 🌐 WebService
 
-**URL:** `http://servidordeltapy.dyndns.org/WSDelta_POS/wsdelta_pos.asmx`
+
 
 **Métodos disponibles:**
 - `Eq_Login` - Autenticación del chofer
