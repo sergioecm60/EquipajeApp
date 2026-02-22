@@ -41,10 +41,7 @@ EquipajeApp/
 │   ├── src/main/res/           # Layouts y recursos
 │   └── build.gradle.kts        # Dependencias del módulo
 ├── docs/                       # Documentación
-│   ├── WEBSERVICE_DELTA_CONFIG.md  # Configuración SOAP
-│   ├── PROGRAMADOR.md          # Guía para desarrolladores
-│   ├── PROYECTO.md             # Especificación del proyecto
-│   └── WEBSERVICE_CONFIG.md    # Configuración legacy
+│   
 ├── movil/                      # APKs compiladas
 │   ├── EquipajeApp-v1.0.0-debug.apk
 │   └── README.md               # Guía de instalación
